@@ -22,7 +22,13 @@ function toISO(pt) {
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTES
 ═══════════════════════════════════════════════════════════════ */
-const SK = { EMPS:"la_emps", RECS:"la_recs", AUDIT:"la_audit", ADMIN:"la_admin", INIT:"la_init" };
+const SK = { EMPS:"la_emps", RECS:"la_recs", AUDIT:"la_audit", ADMIN:"la_admin", INIT:"la_init", ACT:"la_activated" };
+
+// ╔══════════════════════════════════════════════╗
+// ║  CÓDIGO DE ATIVAÇÃO — ALTERE AQUI            ║
+// ║  Escolha uma palavra secreta só sua          ║
+// ╚══════════════════════════════════════════════╝
+const ACTIVATION_CODE = "LongevityAlvor2026";
 
 const AL = { entrada:"Entrada", saida:"Saída", inicio_pausa:"Início de Pausa", fim_pausa:"Fim de Pausa" };
 
@@ -115,6 +121,11 @@ export default function App() {
   useEffect(() => { boot(); }, []);
 
   async function boot() {
+    // Verificar se este dispositivo está ativado
+    if (!ld(SK.ACT)) {
+      setScreen("activate");
+      return;
+    }
     if (!ld(SK.INIT)) {
       const empList = [];
       for (const e of SEED_EMPS)
@@ -203,6 +214,7 @@ export default function App() {
       )}
 
       {screen==="loading"    && <Loading />}
+      {screen==="activate"   && <ActivationScreen onOk={()=>{ sv(SK.ACT,true); boot(); }} />}
       {screen==="home"       && <HomeScreen emps={emps} recs={recs} onSelect={e=>{setSelEmp(e);setScreen("pin");}} onAdmin={()=>setScreen("admin_login")} />}
       {screen==="pin"        && selEmp && <PinScreen emp={selEmp} onBack={()=>{setScreen("home");setSelEmp(null);}} onOk={()=>setScreen("action")} />}
       {screen==="action"     && selEmp && <ActionScreen emp={selEmp} recs={recs} onBack={()=>{setScreen("home");setSelEmp(null);}} onRecord={doRecord} validate={t=>validateAction(recs,selEmp.id,t)} />}
@@ -220,6 +232,75 @@ function Loading() {
     </div>
   );
 }
+/* ═══════════════════════════════════════════════════════════════
+   ACTIVATION SCREEN
+═══════════════════════════════════════════════════════════════ */
+function ActivationScreen({ onOk }) {
+  const [code,  setCode]  = useState("");
+  const [err,   setErr]   = useState("");
+  const [busy,  setBusy]  = useState(false);
+
+  async function check() {
+    if (!code.trim()) { setErr("Introduza o código de ativação."); return; }
+    setBusy(true);
+    // Pequeno delay para evitar brute force
+    await new Promise(r => setTimeout(r, 800));
+    setBusy(false);
+    if (code.trim() === ACTIVATION_CODE) {
+      onOk();
+    } else {
+      setErr("Código incorreto. Este dispositivo não está autorizado.");
+      setCode("");
+    }
+  }
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",padding:32,background:"#1c1917",position:"relative"}}>
+      {/* Logo */}
+      <div style={{marginBottom:32,textAlign:"center"}}>
+        <div style={{width:80,height:80,borderRadius:24,background:"#10b981",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,fontWeight:900,color:"#fff",margin:"0 auto 16px",boxShadow:"0 8px 32px rgba(16,185,129,.4)"}}>
+          LA
+        </div>
+        <p style={{fontSize:12,fontWeight:700,letterSpacing:3,color:"#10b981",textTransform:"uppercase"}}>Longevity Alvor</p>
+        <h1 style={{fontSize:26,fontWeight:800,color:"#fff",marginTop:6}}>Controlo de Assiduidade</h1>
+      </div>
+
+      {/* Card */}
+      <div style={{background:"#fff",borderRadius:20,padding:"28px 24px",width:"100%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,.4)"}}>
+        <h2 style={{fontSize:18,fontWeight:800,color:"#1c1917",marginBottom:4}}>Dispositivo não autorizado</h2>
+        <p style={{fontSize:13,color:"#78716c",marginBottom:20,lineHeight:1.5}}>
+          Esta app só pode ser usada em dispositivos autorizados. Introduza o código de ativação fornecido pelo administrador.
+        </p>
+        <input
+          type="password"
+          placeholder="Código de ativação"
+          value={code}
+          onChange={e=>{setCode(e.target.value);setErr("");}}
+          onKeyDown={e=>e.key==="Enter"&&check()}
+          autoFocus
+          style={{width:"100%",border:"2px solid #e7e5e4",borderRadius:12,padding:"14px",fontSize:16,textAlign:"center",outline:"none",fontFamily:"inherit",marginBottom:12,letterSpacing:2}}
+        />
+        {err&&(
+          <div style={{background:"#fff1f2",border:"1px solid #fecaca",borderRadius:10,padding:"10px 14px",color:"#ef4444",fontSize:13,textAlign:"center",marginBottom:12}}>
+            🔒 {err}
+          </div>
+        )}
+        <button
+          onClick={check}
+          disabled={busy}
+          style={{width:"100%",background:"#10b981",color:"#fff",border:"none",borderRadius:12,padding:"15px",fontSize:16,fontWeight:700,cursor:"pointer",fontFamily:"inherit",opacity:busy?.6:1,boxShadow:"0 4px 14px rgba(16,185,129,.35)"}}>
+          {busy?"A verificar…":"Ativar Dispositivo"}
+        </button>
+      </div>
+
+      <p style={{marginTop:24,color:"#57534e",fontSize:12,textAlign:"center",lineHeight:1.6}}>
+        Para obter o código de ativação<br/>contacte o administrador da clínica
+      </p>
+    </div>
+  );
+}
+
+
 
 /* ═══════════════════════════════════════════════════════════════
    HOME SCREEN
