@@ -654,6 +654,9 @@ function RecordsTab({ recs, audit, emps, onRecs, onAudit, showToast }) {
   const [expMon, setExpMon] = useState(new Date().toISOString().slice(0,7));
   const [prtEmp, setPrtEmp] = useState(emps[0]?.id||"");
   const [prtMon, setPrtMon] = useState(new Date().toISOString().slice(0,7));
+  const [newRec, setNewRec] = useState(false);
+  const [nData,  setNData]  = useState({});
+  const [nWhy,   setNWhy]   = useState("");
 
   const filtered = recs
     .filter(r=>{
@@ -704,6 +707,46 @@ function RecordsTab({ recs, audit, emps, onRecs, onAudit, showToast }) {
     }]);
     showToast("Registo eliminado.");
     setDelR(null);
+  }
+
+  function openNewRec() {
+    const now = new Date();
+    setNData({
+      empId: emps[0]?.id||"",
+      type: "entrada",
+      date: now.toISOString().slice(0,10),
+      time: ptTime(now).slice(0,5),
+      notes: "",
+    });
+    setNWhy("");
+    setNewRec(true);
+  }
+
+  function saveNewRec() {
+    if (!nWhy.trim()) { showToast("Motivo é obrigatório.","err"); return; }
+    const emp = emps.find(e=>e.id===nData.empId);
+    if (!emp) { showToast("Selecione um colaborador.","err"); return; }
+    const [y,m,d] = nData.date.split("-");
+    const date = `${z(+d)}/${z(+m)}/${y}`;
+    const time = nData.time+":00";
+    const rec = {
+      id: `m${Date.now()}${Math.random().toString(36).slice(2,5)}`,
+      employeeId: emp.id, employeeName: emp.name,
+      type: nData.type, date, time,
+      datetime: `${date} ${time}`,
+      notes: nData.notes||"",
+      edited: true, editCount: 1,
+    };
+    onRecs([...recs, rec]);
+    onAudit([...audit,{
+      id:`a${Date.now()}`, timestamp:ptDT(), action:"CRIAÇÃO MANUAL",
+      recordId:rec.id, employeeName:emp.name,
+      before:"—",
+      after:JSON.stringify({type:rec.type,date:rec.date,time:rec.time.slice(0,5),notes:rec.notes}),
+      reason:nWhy,
+    }]);
+    showToast("Registo criado com sucesso!");
+    setNewRec(false);
   }
 
   /* ── CSV EXPORT ───────────────────────────────────────────── */
@@ -819,6 +862,12 @@ function RecordsTab({ recs, audit, emps, onRecs, onAudit, showToast }) {
   /* ── RENDER ───────────────────────────────────────────────── */
   return (
     <div style={{padding:16,display:"flex",flexDirection:"column",gap:12}}>
+
+      {/* Novo Registo Manual */}
+      <button className="ab" onClick={openNewRec}
+        style={{background:"#10b981",color:"#fff",border:"none",borderRadius:14,padding:"15px 20px",fontSize:15,fontWeight:700,cursor:"pointer",fontFamily:"inherit",boxShadow:"0 3px 12px rgba(16,185,129,.3)",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        ➕ Criar Registo Manual
+      </button>
 
       {/* Filtros */}
       <Crd title="Filtros">
@@ -937,6 +986,40 @@ function RecordsTab({ recs, audit, emps, onRecs, onAudit, showToast }) {
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:12}}>
             <button className="ab" onClick={()=>setDelR(null)} style={S.btnCancel}>Cancelar</button>
             <button className="ab" onClick={saveDel} style={{...S.btnPrimary,background:"#ef4444",boxShadow:"0 3px 10px rgba(239,68,68,.3)"}}>Eliminar</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Novo Registo Manual */}
+      {newRec&&(
+        <Modal title="Criar Registo Manual" onClose={()=>setNewRec(false)}>
+          <Fld label="Colaborador">
+            <select value={nData.empId} onChange={e=>setNData(d=>({...d,empId:e.target.value}))} style={S.input}>
+              {emps.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </Fld>
+          <Fld label="Tipo de marcação">
+            <select value={nData.type} onChange={e=>setNData(d=>({...d,type:e.target.value}))} style={S.input}>
+              {Object.entries(AL).map(([v,l])=><option key={v} value={v}>{l}</option>)}
+            </select>
+          </Fld>
+          <Fld label="Data">
+            <input type="date" value={nData.date} onChange={e=>setNData(d=>({...d,date:e.target.value}))} style={S.input} />
+          </Fld>
+          <Fld label="Hora">
+            <input type="time" value={nData.time} onChange={e=>setNData(d=>({...d,time:e.target.value}))} style={S.input} />
+          </Fld>
+          <Fld label="Observações">
+            <textarea value={nData.notes} onChange={e=>setNData(d=>({...d,notes:e.target.value}))} rows={2}
+              style={{...S.input,resize:"none"}} placeholder="Opcional…" />
+          </Fld>
+          <Fld label="Motivo da criação manual *" accent>
+            <textarea value={nWhy} onChange={e=>setNWhy(e.target.value)} rows={2} placeholder="Obrigatório…"
+              style={{...S.input,resize:"none",borderColor:"#fca5a5"}} />
+          </Fld>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:12}}>
+            <button className="ab" onClick={()=>setNewRec(false)} style={S.btnCancel}>Cancelar</button>
+            <button className="ab" onClick={saveNewRec} style={S.btnPrimary}>Criar Registo</button>
           </div>
         </Modal>
       )}
