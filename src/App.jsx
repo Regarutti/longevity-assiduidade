@@ -598,11 +598,7 @@ function AdminLogin({ onBack, onOk }) {
           {busy?"A verificar…":"Entrar"}
         </button>
       </div>
-      <p style={{marginTop:32,color:"#a8a29e",fontSize:12,textAlign:"center",lineHeight:1.7}}>
-        Password padrão:{" "}
-        <code style={{background:"#f1f0ec",padding:"2px 6px",borderRadius:4,fontFamily:"'DM Mono',monospace"}}>Admin2026</code>
-        <br/>Altere após a primeira utilização
-      </p>
+
     </div>
   );
 }
