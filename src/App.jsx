@@ -369,9 +369,7 @@ function HomeScreen({ emps, recs, onSelect, onAdmin }) {
                 </div>
                 <span style={{fontSize:21,fontWeight:700,color:"#1c1917"}}>{emp.name}</span>
               </div>
-              <span style={{fontSize:12,fontWeight:600,padding:"5px 12px",borderRadius:20,background:st.bg,color:st.col,flexShrink:0}}>
-                {st.label}
-              </span>
+
             </button>
           );
         })}
